@@ -1,0 +1,27 @@
+[
+  {
+    "id": "room1",
+    "host": "host1",
+    "participants": ["participant1", "participant2"],
+    "suggestions": [
+      {
+        "id": "song1",
+        "title": "Song One",
+        "artist": "Artist One",
+        "duration": 210,
+        "cover": "cover1.jpg",
+        "upvotes": 5,
+        "downvotes": 2
+      },
+      {
+        "id": "song2",
+        "title": "Song Two",
+        "artist": "Artist Two",
+        "duration": 180,
+        "cover": "cover2.jpg",
+        "upvotes": 10,
+        "downvotes": 1
+      }
+    ]
+  }
+]
