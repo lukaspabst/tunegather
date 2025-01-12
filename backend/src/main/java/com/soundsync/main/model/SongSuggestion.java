@@ -1,17 +1,30 @@
 package com.soundsync.main.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
 public class SongSuggestion {
+    @JsonProperty("id")
     private String id;
-    private String title;
-    private String artist;
-    private int duration;
-    private String cover;
-    private int upVotes;
-    private int downVotes;
 
+    @JsonProperty("title")
+    private String title;
+
+    @JsonProperty("artist")
+    private String artist;
+
+    @JsonProperty("duration")
+    private int duration;
+
+    @JsonProperty("cover")
+    private String cover;
+
+    @JsonProperty("upVotes")
+    private int upVotes;
+
+    @JsonProperty("downVotes")
+    private int downVotes;
 }

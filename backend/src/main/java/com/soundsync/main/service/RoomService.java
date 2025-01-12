@@ -7,12 +7,15 @@ import com.google.zxing.qrcode.QRCodeWriter;
 import com.soundsync.main.model.Room;
 import com.soundsync.main.model.SongSuggestion;
 import com.soundsync.main.repository.RoomRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,20 +23,26 @@ import java.util.UUID;
 public class RoomService {
     private final RoomRepository roomRepository;
 
+    @Value("${app.base-url}")
+    private String baseUrl;
+
     public RoomService(RoomRepository roomRepository) {
         this.roomRepository = roomRepository;
     }
 
     public Room createRoom(String host) throws Exception {
         String roomId = UUID.randomUUID().toString();
-        String link = "https://tunegather.app/room/" + roomId;
+        String link = baseUrl + roomId;
         String qrCodePath = roomId + "_qr.png";
 
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
         BitMatrix bitMatrix = qrCodeWriter.encode(link, BarcodeFormat.QR_CODE, 300, 300);
         BufferedImage qrImage = MatrixToImageWriter.toBufferedImage(bitMatrix);
 
-        ImageIO.write(qrImage, "PNG", new File(qrCodePath));
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        ImageIO.write(qrImage, "PNG", outputStream);
+        byte[] qrCodeBytes = outputStream.toByteArray();
+        String qrCodeBase64 = Base64.getEncoder().encodeToString(qrCodeBytes);
 
         System.out.println("QR Code saved to: " + qrCodePath);
 
@@ -41,7 +50,7 @@ public class RoomService {
         room.setId(roomId);
         room.setHost(host);
         room.setLink(link);
-        room.setQrCode(qrCodePath);
+        room.setQrCode(qrCodeBase64);
 
         List<String> participants = new ArrayList<>();
         participants.add(host);
