@@ -171,6 +171,7 @@ export default {
         const response = await axios.post("/api/rooms", payload);
         alert("Room created successfully!");
         this.showCreateRoomModal = false;
+        sessionStorage.setItem("userName", this.hostName);
         this.$router.push(`/room/${response.data.id}`);
       } catch (error) {
         console.error("Error creating room:", error);
@@ -190,6 +191,7 @@ export default {
         };
 
         await axios.post(`/api/rooms/${this.roomCode}/participants`, payload);
+        sessionStorage.setItem("userName", this.userName);
         alert("Joined the room successfully!");
         this.showJoinRoomModal = false;
         this.$router.push(`/room/${this.roomCode}`);

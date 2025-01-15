@@ -64,8 +64,6 @@ public class RoomController {
             return ResponseEntity.ok("Participant added successfully.");
         } catch (RuntimeException e) {
             return ResponseEntity.status(404).body(new ErrorResponse(404, "Not Found", e.getMessage()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(403).body(new ErrorResponse(403, "Forbidden", e.getMessage()));
         }
     }
 
