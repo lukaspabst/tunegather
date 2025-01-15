@@ -1,6 +1,8 @@
 package com.soundsync.main.Controller;
 
 import com.soundsync.main.Controller.dto.ErrorResponse;
+import com.soundsync.main.Controller.dto.ParticipantRequestDto;
+import com.soundsync.main.Controller.dto.RoomRequestDto;
 import com.soundsync.main.model.Room;
 import com.soundsync.main.model.SongSuggestion;
 import com.soundsync.main.service.RoomService;
@@ -17,9 +19,9 @@ public class RoomController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createRoom(@RequestParam String host) {
+    public ResponseEntity<?> createRoom(@RequestBody RoomRequestDto roomRequestDto) {
         try {
-            Room room = roomService.createRoom(host);
+            Room room = roomService.createRoom(roomRequestDto);
             return ResponseEntity.status(201).body(room);
         } catch (Exception e) {
             return ResponseEntity.status(500).body(new ErrorResponse(500, "Internal Server Error", "Failed to create room."));
@@ -56,12 +58,14 @@ public class RoomController {
     }
 
     @PostMapping("/{roomId}/participants")
-    public ResponseEntity<?> addParticipant(@PathVariable String roomId, @RequestParam String participant) {
+    public ResponseEntity<?> addParticipant(@PathVariable String roomId, @RequestBody ParticipantRequestDto participantRequestDto) {
         try {
-            roomService.addParticipant(roomId, participant);
+            roomService.addParticipant(roomId, participantRequestDto);
             return ResponseEntity.ok("Participant added successfully.");
         } catch (RuntimeException e) {
             return ResponseEntity.status(404).body(new ErrorResponse(404, "Not Found", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(403).body(new ErrorResponse(403, "Forbidden", e.getMessage()));
         }
     }
 

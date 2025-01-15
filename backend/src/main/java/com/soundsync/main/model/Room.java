@@ -1,11 +1,15 @@
 package com.soundsync.main.model;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Document(collection = "rooms")
+@Getter
+@Setter
 public class Room {
 
     @Id
@@ -14,6 +18,15 @@ public class Room {
 
     @JsonProperty("host")
     private String host;
+
+    @JsonProperty("roomTitle")
+    private String roomTitle;
+
+    @JsonProperty("entryPercentage")
+    private String entryPercentage;
+
+    @JsonProperty("roomPassword")
+    private String roomPassword;
 
     @JsonProperty("participants")
     private List<String> participants;
@@ -36,54 +49,6 @@ public class Room {
         this.participants = participants;
         this.suggestions = suggestions;
         this.qrCode = qrCode;
-        this.link = link;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getHost() {
-        return host;
-    }
-
-    public void setHost(String host) {
-        this.host = host;
-    }
-
-    public List<String> getParticipants() {
-        return participants;
-    }
-
-    public void setParticipants(List<String> participants) {
-        this.participants = participants;
-    }
-
-    public List<SongSuggestion> getSuggestions() {
-        return suggestions;
-    }
-
-    public void setSuggestions(List<SongSuggestion> suggestions) {
-        this.suggestions = suggestions;
-    }
-
-    public String getQrCode() {
-        return qrCode;
-    }
-
-    public void setQrCode(String qrCode) {
-        this.qrCode = qrCode;
-    }
-
-    public String getLink() {
-        return link;
-    }
-
-    public void setLink(String link) {
         this.link = link;
     }
 }
