@@ -7,6 +7,7 @@ import com.soundsync.main.service.SpotifyService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.List;
 
@@ -29,5 +30,10 @@ public class WebSocketController {
     @SendTo("/topic/searchResults")
     public List<SongSuggestion> search(String query) {
         return spotifyService.searchSongs(query);
+    }
+
+    @GetMapping("/token")
+    public String getAccessToken() {
+        return spotifyService.getAccessToken();
     }
 }

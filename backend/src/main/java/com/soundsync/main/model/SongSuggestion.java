@@ -32,7 +32,17 @@ public class SongSuggestion {
     @JsonProperty("downVotes")
     private int downVotes;
 
-    public SongSuggestion(String id, String name, String artist, int duration, String cover) {
+    @JsonProperty("href")
+    private String href;
+
+    @JsonProperty("uri")
+    private String uri;
+
+    @JsonProperty("previewUrl")
+    private String previewUrl;
+
+
+    public SongSuggestion(String id, String name, String artist, int duration, String cover, String href, String uri, String previewUrl) {
         this.id = id;
         this.title = name;
         this.artist = artist;
@@ -40,5 +50,8 @@ public class SongSuggestion {
         this.cover = cover;
         this.upVotes = 0;
         this.downVotes = 0;
+        this.href = href;
+        this.uri = uri;
+        this.previewUrl = previewUrl;
     }
 }

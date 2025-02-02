@@ -38,6 +38,20 @@
             >
               <i :class="{'fa-play': !song.isPlaying, 'fa-pause': song.isPlaying}" class="fas"></i>
             </button>
+
+            <div v-if="song.isPlaying" class="mt-2">
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div
+                    class="bg-blue-500 h-2 rounded-full"
+                    :style="{ width: (song.currentTime / song.duration) * 100 + '%' }"
+                ></div>
+              </div>
+              <div class="flex justify-between text-xs text-gray-500 mt-1">
+                <span>{{ formatTime(song.currentTime) }}</span>
+                <span>{{ formatTime(song.duration) }}</span>
+              </div>
+            </div>
+
           </li>
         </ul>
       </div>
@@ -75,10 +89,16 @@ export default {
       stompClient: null,
       typingTimeout: null,
       selectedSong: null,
+      currentSongUrl: '',
+      currentlyPlayingSong: null,
+      player: null,
+      deviceId: null,
+      accessToken: null,
     };
   },
-  created() {
+  async created() {
     this.connectWebSocket();
+    this.initializePlayer();
   },
   watch: {
     newSongName(newVal) {
@@ -92,6 +112,14 @@ export default {
 
       this.stompClient.connect({}, () => {
         console.log('WebSocket connected');
+
+        this.stompClient.subscribe('/token', (message) => {
+          const data = JSON.parse(message.body);
+          this.accessToken = data.accessToken;
+          console.log('Access Token received:', this.accessToken);
+          this.initializePlayer();
+        })
+
         this.stompClient.subscribe('/topic/searchResults', (message) => {
           this.$emit('update-search-results', JSON.parse(message.body));
         });
@@ -145,12 +173,104 @@ export default {
       const seconds = ((durationMs % 60000) / 1000).toFixed(0);
       return `${minutes}:${seconds.padStart(2, '0')}`;
     },
-    togglePlay(song) {
-      song.isPlaying = !song.isPlaying;
-      if (song.isPlaying) {
-        console.log("Playing song:", song.title);
+    formatTime(timeMs) {
+      const minutes = Math.floor(timeMs / 60000);
+      const seconds = Math.floor((timeMs % 60000) / 1000);
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    },
+    initializePlayer() {
+      if (!this.accessToken) {
+        console.error('Access token not set');
+        return;
+      }
+      if (!window.Spotify) {
+        console.error('Spotify Web Playback SDK is not loaded.');
+        return;
+      }
+      window.onSpotifyWebPlaybackSDKReady = () => {
+        this.player = new Spotify.Player({
+          name: 'Your App Name',
+          getOAuthToken: (cb) => {
+            cb(this.accessToken);
+          },
+          volume: 0.5,
+        });
+
+        this.player.addListener('ready', ({ device_id }) => {
+          this.deviceId = device_id;
+          console.log('Ready with Device ID', device_id);
+        });
+
+        this.player.addListener('player_state_changed', (state) => {
+          console.log('Player State Changed', state);
+          if (state) {
+            const currentTrack = state.track_window.current_track;
+            const currentTime = state.position;
+            const duration = currentTrack.duration_ms;
+
+            if (this.currentlyPlayingSong) {
+              this.currentlyPlayingSong.currentTime = currentTime;
+              this.currentlyPlayingSong.duration = duration;
+            }
+          }
+        });
+
+        this.player.connect();
+      };
+    },
+
+    async playTrack(trackUri) {
+      if (!this.deviceId) {
+        console.error('Device ID not set');
+        return;
+      }
+
+      const response = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${this.deviceId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ uris: [trackUri] }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.accessToken}`,
+        },
+      });
+
+      if (response.ok) {
+        console.log('Playback started');
       } else {
-        console.log("Pausing song:", song.title);
+        console.error('Failed to start playback');
+      }
+    },
+
+    async pauseTrack() {
+      const response = await fetch('https://api.spotify.com/v1/me/player/pause', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+        },
+      });
+
+      if (response.ok) {
+        console.log('Playback paused');
+      } else {
+        console.error('Failed to pause playback');
+      }
+    },
+
+    togglePlay(song) {
+      if (this.currentlyPlayingSong && this.currentlyPlayingSong !== song) {
+        this.currentlyPlayingSong.isPlaying = false;
+        this.pauseTrack();
+      }
+      if (song.isPlaying) {
+        this.pauseTrack();
+        song.isPlaying = false;
+        this.currentlyPlayingSong = null;
+        this.currentSongUrl = '';
+      } else {
+        this.currentSongUrl = song.previewUrl;
+        this.playTrack(song.uri);
+        song.isPlaying = true;
+        this.currentlyPlayingSong = song;
       }
     },
     getCoverUrl(coverString) {
