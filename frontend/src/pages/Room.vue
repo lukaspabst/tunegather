@@ -5,7 +5,7 @@
       <h2 class="text-2xl font-bold">Room: {{ roomId }}</h2>
       <button
           @click="showShareModal = true"
-          class="p-2 bg-gray-100 text-blue-500 rounded-full shadow hover:bg-gray-200"
+          class="p-2 bg-gray-100 text-blue-500 rounded-full shadow hover:bg-gray-200 transition duration-200"
       >
         <i class="fas fa-share-alt"></i>
       </button>
@@ -21,13 +21,13 @@
             <div>
               <button
                   @click="vote(song.id, 'up')"
-                  class="px-2 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                  class="px-2 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 transition duration-200"
               >
                 Upvote
               </button>
               <button
                   @click="vote(song.id, 'down')"
-                  class="px-2 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                  class="px-2 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-200"
               >
                 Downvote
               </button>
@@ -41,7 +41,7 @@
     <div v-if="!showJoinModal" class="p-4">
       <button
           @click="showAddSongDialog = true"
-          class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200"
       >
         Add Song
       </button>
@@ -75,7 +75,7 @@
         <div class="text-right space-x-4">
           <button
               @click="joinRoom"
-              class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium"
+              class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium transition duration-200"
           >
             Join Room
           </button>
@@ -101,7 +101,7 @@
           />
           <button
               @click="copyToClipboard(roomLink)"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition duration-200"
           >
             Copy
           </button>
@@ -109,7 +109,7 @@
         <div class="mt-4 text-right">
           <button
               @click="showShareModal = false"
-              class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 font-medium"
+              class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 font-medium transition duration-200"
           >
             Close
           </button>
@@ -118,28 +118,36 @@
     </div>
 
     <!-- Add Song Dialog -->
-    <div
-        v-if="showAddSongDialog"
-        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
-    >
+    <div v-if="showAddSongDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
       <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
         <h3 class="text-xl font-semibold mb-4 text-gray-800">Add a Song</h3>
         <input
             v-model="newSongName"
+            @input="searchSongs"
             type="text"
-            placeholder="Enter Song Name"
+            placeholder="Search for a song"
             class="border rounded-lg px-2 py-1 w-full mb-4 text-gray-800"
         />
+        <ul v-if="searchResults.length" class="mb-4">
+          <li
+              v-for="song in searchResults"
+              :key="song.id"
+              @click="selectSong(song)"
+              class="p-2 hover:bg-gray-100 cursor-pointer"
+          >
+            {{ song.name }} - {{ song.artist }}
+          </li>
+        </ul>
         <div class="text-right">
           <button
               @click="addSong"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition duration-200"
           >
             Add
           </button>
           <button
               @click="showAddSongDialog = false"
-              class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 font-medium ml-2"
+              class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 font-medium transition duration-200 ml-2"
           >
             Cancel
           </button>
@@ -150,7 +158,9 @@
 </template>
 
 <script>
-import axios from "axios";
+import SockJS from 'sockjs-client';
+import Stomp from 'stompjs';
+import axios from 'axios';
 
 export default {
   data() {
@@ -158,7 +168,7 @@ export default {
       roomId: this.$route.params.id,
       songs: [],
       qrCode: "",
-      roomLink: ``,
+      roomLink: "",
       newSongName: "",
       showShareModal: false,
       showAddSongDialog: false,
@@ -167,7 +177,18 @@ export default {
       roomPassword: "",
       loading: true,
       error: null,
+      stompClient: null, // WebSocket client
+      searchResults: [], // Search results array
     };
+  },
+  created() {
+    const userName = localStorage.getItem("userName");
+    if (userName) {
+      this.userName = userName;
+      this.showJoinModal = false;
+      this.fetchSongs();
+    }
+    this.connectWebSocket(); // Initialize WebSocket connection
   },
   methods: {
     async fetchSongs() {
@@ -176,9 +197,9 @@ export default {
         this.error = null;
 
         const response = await axios.get(`/api/rooms/${this.roomId}`);
-        this.songs = response.data.suggestions;
-        this.qrCode = response.data.qrCode;
-        this.roomLink = response.data.link;
+        this.songs = response.data.suggestions || [];
+        this.qrCode = response.data.qrCode || "";
+        this.roomLink = response.data.link || "";
       } catch (err) {
         console.error("Error fetching songs:", err);
         this.error = "Failed to load songs. Please try again.";
@@ -200,9 +221,7 @@ export default {
 
         await axios.post(`/api/rooms/${this.roomId}/participants`, payload);
 
-        // Save username in sessionStorage
-        sessionStorage.setItem("userName", this.userName);
-
+        localStorage.setItem("userName", this.userName);
         alert("Joined the room successfully!");
         this.showJoinModal = false;
         await this.fetchSongs();
@@ -219,36 +238,57 @@ export default {
     },
     async vote(songId, type) {
       try {
-        await axios.post(`/api/rooms/${this.roomId}/songs/${songId}/vote`, {type});
+        await axios.post(`/api/rooms/${this.roomId}/songs/${songId}/vote`, { type });
         alert(`You voted ${type} for song ${songId}`);
       } catch (err) {
         console.error("Error voting for song:", err);
         alert("Failed to submit your vote. Please try again.");
       }
     },
+    connectWebSocket() {
+      const socket = new SockJS('http://localhost:8080/ws'); // Replace with your backend URL
+      this.stompClient = Stomp.over(socket);
+
+      this.stompClient.connect({}, () => {
+        console.log('WebSocket connected');
+
+        // Subscribe to the search results topic
+        this.stompClient.subscribe('/topic/searchResults', (message) => {
+          this.searchResults = JSON.parse(message.body);
+        });
+      });
+    },
+    searchSongs() {
+      if (this.newSongName.trim()) {
+        // Send the search query to the backend
+        this.stompClient.send('/app/search', {}, JSON.stringify(this.newSongName));
+      }
+    },
+    selectSong(song) {
+      this.newSongName = song.name; // Auto-fill the input with the selected song
+      this.searchResults = []; // Clear search results
+    },
     async addSong() {
       if (!this.newSongName.trim()) {
-        alert("Please enter a song name.");
+        alert('Please select a song.');
         return;
       }
-      try {
-        const suggestion = {
-          title: this.newSongName,
-          artist: "Unknown Artist",
-          duration: 0,
-          cover: "",
-          upVotes: 0,
-          downVotes: 0,
-        };
 
-        await axios.post(`/api/rooms/${this.roomId}/suggestions`, suggestion);
-        alert("Song added successfully!");
-        this.newSongName = "";
+      try {
+        const song = this.searchResults.find(s => s.name === this.newSongName);
+        if (!song) {
+          alert('Invalid song selection.');
+          return;
+        }
+
+        await axios.post(`/api/rooms/${this.roomId}/suggestions`, song);
+        alert('Song added successfully!');
+        this.newSongName = '';
         this.showAddSongDialog = false;
         await this.fetchSongs();
       } catch (err) {
-        console.error("Error adding song:", err);
-        alert("Failed to add song. Please try again.");
+        console.error('Error adding song:', err);
+        alert('Failed to add song. Please try again.');
       }
     },
     copyToClipboard(text) {
@@ -257,21 +297,10 @@ export default {
       });
     },
   },
-  async created() {
-    // Automatically open join modal if no username is in sessionStorage
-    const userName = sessionStorage.getItem("userName");
-    if (userName) {
-      this.userName = userName;
-      this.showJoinModal = false;
-      await this.fetchSongs();
-    }
-  },
 };
 </script>
 
-
 <style scoped>
-/* Import FontAwesome */
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css");
 
 .text-gray-800 {

@@ -5,13 +5,13 @@
       <div class="space-x-4">
         <button
             @click="showJoinRoomModal = true"
-            class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200"
         >
           Join Room
         </button>
         <button
             @click="showCreateRoomModal = true"
-            class="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+            class="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition duration-200"
         >
           Create Room
         </button>
@@ -55,13 +55,13 @@
         <div class="text-right space-x-4">
           <button
               @click="joinRoom"
-              class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium"
+              class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium transition duration-200"
           >
             Join Room
           </button>
           <button
               @click="showJoinRoomModal = false"
-              class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 font-medium"
+              class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 font-medium transition duration-200"
           >
             Cancel
           </button>
@@ -121,13 +121,13 @@
         <div class="text-right space-x-4">
           <button
               @click="createRoom"
-              class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium"
+              class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium transition duration-200"
           >
             Create Room
           </button>
           <button
               @click="showCreateRoomModal = false"
-              class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 font-medium"
+              class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 font-medium transition duration-200"
           >
             Cancel
           </button>
@@ -171,7 +171,7 @@ export default {
         const response = await axios.post("/api/rooms", payload);
         alert("Room created successfully!");
         this.showCreateRoomModal = false;
-        sessionStorage.setItem("userName", this.hostName);
+        localStorage.setItem("userName", this.hostName); // Use localStorage for persistence
         this.$router.push(`/room/${response.data.id}`);
       } catch (error) {
         console.error("Error creating room:", error);
@@ -191,7 +191,7 @@ export default {
         };
 
         await axios.post(`/api/rooms/${this.roomCode}/participants`, payload);
-        sessionStorage.setItem("userName", this.userName);
+        localStorage.setItem("userName", this.userName); // Use localStorage for persistence
         alert("Joined the room successfully!");
         this.showJoinRoomModal = false;
         this.$router.push(`/room/${this.roomCode}`);
