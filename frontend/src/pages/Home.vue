@@ -171,7 +171,7 @@ export default {
         const response = await axios.post("/api/rooms", payload);
         alert("Room created successfully!");
         this.showCreateRoomModal = false;
-        localStorage.setItem("userName", this.hostName); // Use localStorage for persistence
+        localStorage.setItem("userName", this.hostName);
         this.$router.push(`/room/${response.data.id}`);
       } catch (error) {
         console.error("Error creating room:", error);
@@ -191,7 +191,7 @@ export default {
         };
 
         await axios.post(`/api/rooms/${this.roomCode}/participants`, payload);
-        localStorage.setItem("userName", this.userName); // Use localStorage for persistence
+        localStorage.setItem("userName", this.userName);
         alert("Joined the room successfully!");
         this.showJoinRoomModal = false;
         this.$router.push(`/room/${this.roomCode}`);

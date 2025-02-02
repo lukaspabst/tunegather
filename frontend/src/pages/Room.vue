@@ -1,6 +1,5 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Header -->
     <div v-if="!showJoinModal" class="p-4 bg-blue-500 text-white flex justify-between items-center">
       <h2 class="text-2xl font-bold">Room: {{ roomId }}</h2>
       <button
@@ -10,8 +9,6 @@
         <i class="fas fa-share-alt"></i>
       </button>
     </div>
-
-    <!-- Songs List -->
     <div v-if="!showJoinModal" class="p-4">
       <h3 class="text-xl font-semibold mb-4">Songs</h3>
       <ul>
@@ -36,7 +33,6 @@
         </li>
       </ul>
     </div>
-
     <!-- Add Song Button -->
     <div v-if="!showJoinModal" class="p-4">
       <button
@@ -46,8 +42,6 @@
         Add Song
       </button>
     </div>
-
-    <!-- Join Room Modal -->
     <div
         v-if="showJoinModal"
         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
@@ -116,53 +110,27 @@
         </div>
       </div>
     </div>
-
-    <!-- Add Song Dialog -->
-    <div v-if="showAddSongDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
-        <h3 class="text-xl font-semibold mb-4 text-gray-800">Add a Song</h3>
-        <input
-            v-model="newSongName"
-            @input="searchSongs"
-            type="text"
-            placeholder="Search for a song"
-            class="border rounded-lg px-2 py-1 w-full mb-4 text-gray-800"
-        />
-        <ul v-if="searchResults.length" class="mb-4">
-          <li
-              v-for="song in searchResults"
-              :key="song.id"
-              @click="selectSong(song)"
-              class="p-2 hover:bg-gray-100 cursor-pointer"
-          >
-            {{ song.name }} - {{ song.artist }}
-          </li>
-        </ul>
-        <div class="text-right">
-          <button
-              @click="addSong"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition duration-200"
-          >
-            Add
-          </button>
-          <button
-              @click="showAddSongDialog = false"
-              class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 font-medium transition duration-200 ml-2"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
+    <AddSong
+        v-if="showAddSongDialog"
+        :roomId="roomId"
+        :searchResults="searchResults"
+        :newSongName="newSongName"
+        @update-search-results="updateSearchResults"
+        @select-song="selectSong"
+        @add-song="addSong"
+        @cancel-add-song="cancelAddSong"
+    />
   </div>
 </template>
 
 <script>
-import SockJS from 'sockjs-client';
-import Stomp from 'stompjs';
-import axios from 'axios';
+import AddSong from '../components/AddSong.vue';
+import axios from "axios";
 
 export default {
+  components: {
+    AddSong,
+  },
   data() {
     return {
       roomId: this.$route.params.id,
@@ -177,8 +145,7 @@ export default {
       roomPassword: "",
       loading: true,
       error: null,
-      stompClient: null, // WebSocket client
-      searchResults: [], // Search results array
+      searchResults: [],
     };
   },
   created() {
@@ -188,7 +155,6 @@ export default {
       this.showJoinModal = false;
       this.fetchSongs();
     }
-    this.connectWebSocket(); // Initialize WebSocket connection
   },
   methods: {
     async fetchSongs() {
@@ -245,37 +211,21 @@ export default {
         alert("Failed to submit your vote. Please try again.");
       }
     },
-    connectWebSocket() {
-      const socket = new SockJS('http://localhost:8080/ws'); // Replace with your backend URL
-      this.stompClient = Stomp.over(socket);
-
-      this.stompClient.connect({}, () => {
-        console.log('WebSocket connected');
-
-        // Subscribe to the search results topic
-        this.stompClient.subscribe('/topic/searchResults', (message) => {
-          this.searchResults = JSON.parse(message.body);
-        });
-      });
-    },
-    searchSongs() {
-      if (this.newSongName.trim()) {
-        // Send the search query to the backend
-        this.stompClient.send('/app/search', {}, JSON.stringify(this.newSongName));
-      }
+    updateSearchResults(results) {
+      this.searchResults = results;
     },
     selectSong(song) {
-      this.newSongName = song.name; // Auto-fill the input with the selected song
-      this.searchResults = []; // Clear search results
+      this.newSongName = song.name;
+      this.showAddSongDialog = false;
     },
-    async addSong() {
-      if (!this.newSongName.trim()) {
+    async addSong(songName) {
+      if (!songName.trim()) {
         alert('Please select a song.');
         return;
       }
 
       try {
-        const song = this.searchResults.find(s => s.name === this.newSongName);
+        const song = this.searchResults.find(s => s.name === songName);
         if (!song) {
           alert('Invalid song selection.');
           return;
@@ -291,6 +241,10 @@ export default {
         alert('Failed to add song. Please try again.');
       }
     },
+    cancelAddSong() {
+      this.showAddSongDialog = false;
+      this.newSongName = '';
+    },
     copyToClipboard(text) {
       navigator.clipboard.writeText(text).then(() => {
         alert("Link copied to clipboard!");
@@ -304,6 +258,6 @@ export default {
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css");
 
 .text-gray-800 {
-  color: #1a202c;
+  color: #ffffff;
 }
 </style>

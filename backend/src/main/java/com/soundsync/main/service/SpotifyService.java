@@ -25,7 +25,7 @@ public class SpotifyService {
 
     public List<SongSuggestion> searchSongs(String query) {
         try {
-            SearchTracksRequest searchTracksRequest = spotifyApi.searchTracks(query).build();
+            SearchTracksRequest searchTracksRequest = spotifyApi.searchTracks(query).limit(10).build();
             Track[] tracks = searchTracksRequest.execute().getItems();
 
             return Arrays.stream(tracks)
